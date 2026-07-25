@@ -18,7 +18,7 @@
 
         .container {
             text-align: center;
-            max-width: 500px;
+            max-width: 650px;
             width: 90%;
         }
 
@@ -68,9 +68,9 @@
         }
 
         #linkField {
-            width: 90%;
-            max-width: 420px;
-            padding: 12px;
+            width: 95%;
+            max-width: 600px;
+            padding: 16px;
             font-size: 1em;
             text-align: center;
             border: 1px solid #ccc;
@@ -78,6 +78,7 @@
             margin-top: 10px;
             background-color: #f8f8f8;
             color: #555;
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -117,7 +118,8 @@
                 return;
             }
 
-            const fullLink = window.location.origin + '/' + linkField.value;
+            const currentPath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            const fullLink = currentPath + linkField.value;
 
             navigator.clipboard.writeText(fullLink).then(() => {
                 alert('Посилання скопійовано!');
