@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Запрошення на побачення</title>
+    <style>
+        body {
+            background-color: #ffc8fd;
+            font-family: 'Comic Sans MS', cursive, system-ui;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #ff6b6b;
+            font-size: 2.2em;
+            margin-bottom: 25px;
+        }
+
+        input {
+            padding: 12px 16px;
+            margin: 8px;
+            font-size: 1.15em;
+            border-radius: 12px;
+            border: 2px solid #ffb6c1;
+            width: 80%;
+            max-width: 280px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #ff6b6b;
+        }
+
+        button {
+            padding: 12px 28px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            background-color: #ff6b6b;
+            color: white;
+            font-size: 1.15em;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background-color: #ff5252;
+            transform: scale(1.05);
+        }
+
+        #generatedLink {
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        #linkField {
+            width: 90%;
+            max-width: 420px;
+            padding: 12px;
+            font-size: 1em;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            margin-top: 10px;
+            background-color: #f8f8f8;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Створити запрошення</h1>
+        
+        <input type="text" id="yourName" placeholder="Твоє ім'я">
+        <input type="text" id="baeName" placeholder="Ім'я коханої / коханого">
+        <br>
+        <button onclick="generateLink()">Згенерувати посилання</button>
+        
+        <p id="generatedLink">Посилання для коханої людини:</p>
+        <input type="text" id="linkField" readonly>
+        <br>
+        <button onclick="copyLink()">Скопіювати посилання</button>
+    </div>
+
+    <script>
+        function generateLink() {
+            const yourName = document.getElementById('yourName').value.trim();
+            const baeName = document.getElementById('baeName').value.trim();
+
+            if (yourName && baeName) {
+                const link = `valentine.html?from=${encodeURIComponent(yourName)}&to=${encodeURIComponent(baeName)}`;
+                document.getElementById('linkField').value = link;
+            } else {
+                alert('Будь ласка, введи обидва імені!');
+            }
+        }
+
+        function copyLink() {
+            const linkField = document.getElementById('linkField');
+            
+            if (!linkField.value) {
+                alert('Спочатку згенеруй посилання!');
+                return;
+            }
+
+            const fullLink = window.location.origin + '/' + linkField.value;
+
+            navigator.clipboard.writeText(fullLink).then(() => {
+                alert('Посилання скопійовано!');
+            }).catch(() => {
+                linkField.select();
+                document.execCommand('copy');
+                alert('Посилання скопійовано!');
+            });
+        }
+    </script>
+</body>
+</html>

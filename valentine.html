@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Запрошення на побачення</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body {
+            background-color: #ffc8fd;
+            font-family: 'Comic Sans MS', cursive, system-ui;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 560px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #ff6b6b;
+            font-size: 2.1em;
+            margin-bottom: 12px;
+        }
+
+        .gif img {
+            max-width: 200px;
+            border-radius: 15px;
+            margin: 15px 0;
+        }
+
+        button {
+            padding: 12px 22px;
+            margin: 6px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        #yesBtn {
+            background-color: #97cdff;
+            color: white;
+        }
+
+        #noBtn {
+            background-color: #ff6b6b;
+            color: white;
+            z-index: 9999;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 12px;
+            color: #ff6b6b;
+            font-size: 1.05em;
+        }
+
+        .meeting-section {
+            background: white;
+            padding: 22px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.25);
+            margin-top: 20px;
+            display: none;
+        }
+
+        .meeting-section h2 {
+            color: #ff6b6b;
+            margin: 0 0 8px 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 320px;
+            border-radius: 16px;
+            margin: 15px 0;
+            border: 3px solid #ffb6c1;
+        }
+
+        .place-info {
+            background: #fff0f5;
+            padding: 12px;
+            border-radius: 12px;
+            margin: 12px 0;
+            font-size: 0.95em;
+            color: #555;
+            min-height: 40px;
+        }
+
+        .map-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .apple-btn {
+            background: #000;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .apple-btn:hover {
+            background: #333;
+        }
+
+        .secondary-btn {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .hint {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <h1>Підеш зі мною на побачення? 💖</h1>
+        
+        <div class="gif">
+            <img src="https://media.giphy.com/media/3o7aCTPPm4OHfRLSH6/giphy.gif" alt="Миле гіф">
+        </div>
+
+        <div>
+            <button id="yesBtn">Так!</button>
+            <button id="noBtn">Ні >:(</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        Від <span id="from">коханого</span> для <span id="to">коханої</span> 💕
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // ===== Telegram налаштування =====
+        const TELEGRAM_BOT_TOKEN = "8910229157:AAHWjsKz3kyY5Wq1KisCvFUxClFH1_c15ns";
+        const TELEGRAM_CHAT_ID = "6403236235";
+
+        // ===== Параметри з URL =====
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromParam = urlParams.get('from');
+        const toParam = urlParams.get('to');
+
+        if (fromParam) document.getElementById('from').textContent = fromParam;
+        if (toParam) document.getElementById('to').textContent = toParam;
+
+        const yesBtn = document.getElementById('yesBtn');
+        const noBtn = document.getElementById('noBtn');
+        const mainContainer = document.getElementById('mainContainer');
+
+        // ===== Тікаюча кнопка «Ні» =====
+        document.addEventListener('mousemove', (e) => {
+            const btn = noBtn.getBoundingClientRect();
+            const distX = e.clientX - (btn.left + btn.width / 2);
+            const distY = e.clientY - (btn.top + btn.height / 2);
+            const distance = Math.sqrt(distX * distX + distY * distY);
+
+            if (distance < 130) {
+                const maxX = window.innerWidth - noBtn.offsetWidth - 20;
+                const maxY = window.innerHeight - noBtn.offsetHeight - 20;
+
+                noBtn.style.position = 'fixed';
+                noBtn.style.left = Math.random() * maxX + 'px';
+                noBtn.style.top = Math.random() * maxY + 'px';
+                noBtn.style.transition = 'all 0.13s ease-out';
+            }
+        });
+
+        // ===== Змінні для карти =====
+        let map, marker;
+        let selectedLat = null;
+        let selectedLng = null;
+        let telegramSent = false;
+
+        // ===== Натискання «Так» =====
+        yesBtn.addEventListener('click', () => {
+            mainContainer.innerHTML = `
+                <h1>Урааа! Я дуже радий(а)! 💖</h1>
+                
+                <div class="gif">
+                    <img src="https://media2.giphy.com/media/h20IwOYYJgCMbj4uaD/giphy.gif" alt="Любов" width="200">
+                </div>
+
+                <div class="meeting-section" style="display: block;">
+                    <h2>Де зустрінемось? 📍</h2>
+                    <p>Клікни на карті, щоб вибрати місце</p>
+
+                    <div id="map"></div>
+
+                    <div class="place-info" id="placeInfo">
+                        Місце ще не вибрано
+                    </div>
+
+                    <div class="map-buttons">
+                        <button class="apple-btn" onclick="openAppleMaps()">
+                            <span></span> Відкрити в Apple Maps
+                        </button>
+                        <button class="secondary-btn" onclick="copyAppleLink()">
+                            Скопіювати посилання
+                        </button>
+                    </div>
+
+                    <p class="hint">Після відкриття можна одразу побудувати маршрут</p>
+                </div>
+            `;
+
+            setTimeout(initMap, 50);
+        });
+
+        // ===== Ініціалізація карти (Луцьк) =====
+        function initMap() {
+            map = L.map('map').setView([50.7472, 25.3254], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            map.on('click', function(e) {
+                selectedLat = e.latlng.lat;
+                selectedLng = e.latlng.lng;
+
+                if (marker) {
+                    marker.setLatLng(e.latlng);
+                } else {
+                    marker = L.marker(e.latlng).addTo(map);
+                }
+
+                document.getElementById('placeInfo').innerHTML = `
+                    <strong>Вибрано місце:</strong><br>
+                    Широта: ${selectedLat.toFixed(5)}<br>
+                    Довгота: ${selectedLng.toFixed(5)}
+                `;
+
+                // Надсилаємо в Telegram тільки один раз
+                if (!telegramSent) {
+                    sendTelegramMessage();
+                    telegramSent = true;
+                }
+            });
+        }
+
+        // ===== Надсилання в Telegram =====
+        function sendTelegramMessage() {
+            const from = document.getElementById('from').textContent;
+            const to = document.getElementById('to').textContent;
+            const mapsLink = `https://maps.apple.com/?ll=${selectedLat},${selectedLng}&q=Місце+зустрічі`;
+
+            const text = `
+Нове підтвердження побачення!
+
+Хто запросив: ${from}
+Кому: ${to}
+
+Місце зустрічі:
+Широта: ${selectedLat.toFixed(5)}
+Довгота: ${selectedLng.toFixed(5)}
+
+Карта: ${mapsLink}
+            `.trim();
+
+            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    text: text
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok) {
+                    console.log("Повідомлення надіслано в Telegram");
+                } else {
+                    console.error("Помилка Telegram:", data);
+                }
+            })
+            .catch(err => console.error("Помилка:", err));
+        }
+
+        // ===== Відкрити в Apple Maps =====
+        function openAppleMaps() {
+            if (selectedLat === null) {
+                alert('Спочатку клікни на карті, щоб вибрати місце!');
+                return;
+            }
+
+            const url = `https://maps.apple.com/?ll=${selectedLat},${selectedLng}&q=Місце+зустрічі`;
+            window.open(url, '_blank');
+        }
+
+        // ===== Скопіювати посилання =====
+        function copyAppleLink() {
+            if (selectedLat === null) {
+                alert('Спочатку клікни на карті, щоб вибрати місце!');
+                return;
+            }
+
+            const url = `https://maps.apple.com/?ll=${selectedLat},${selectedLng}&q=Місце+зустрічі`;
+
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Посилання на Apple Maps скопійовано!');
+            }).catch(() => {
+                prompt('Скопіюй це посилання:', url);
+            });
+        }
+    </script>
+</body>
+</html>
